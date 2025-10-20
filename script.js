@@ -36,8 +36,6 @@ const elPlayAgain = document.getElementById('play-again');
 const elSaveForm = document.getElementById('save-score-form');
 const elName = document.getElementById('name');
 const elLeaderboardList = document.getElementById('leaderboard-list');
-const elExportBtn = document.getElementById('export-leaderboard');
-const elClearBtn = document.getElementById('clear-leaderboard');
 
 let quiz = null;
 const DEFAULT_TIME = 20; // seconds per question
@@ -70,12 +68,20 @@ function renderQuestion(){
   elQuestionNumber.textContent = `Question ${quiz.index + 1} / ${quiz.questions.length}`;
   elQuestionText.textContent = q.question;
   elChoices.innerHTML = '';
-  q.choices.forEach((choice, i)=>{
+  // shuffle choices but remember original indexes so we can map back to the correct answer
+  const mapped = q.choices.map((choice, i)=>({choice, origIndex: i}));
+  for(let i = mapped.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
+  }
+  mapped.forEach((m, i)=>{
     const li = document.createElement('li');
     li.className = 'choice';
-    li.dataset.index = i;
+    // store the original index so answer checking still works
+    li.dataset.orig = m.origIndex;
+    li.dataset.index = i; // visual index
     li.tabIndex = 0;
-    li.textContent = choice;
+    li.textContent = m.choice;
     li.addEventListener('click', onChoiceClick);
     li.addEventListener('keypress', (e)=>{ if(e.key === 'Enter') onChoiceClick.call(li, e) });
     elChoices.appendChild(li);
@@ -94,9 +100,10 @@ function renderQuestion(){
       clearInterval(quiz.timer);
       quiz.answered = true;
       const q = quiz.current();
-      Array.from(elChoices.children).forEach((child, i)=>{
+      Array.from(elChoices.children).forEach((child)=>{
         child.classList.remove('correct','wrong');
-        if(i === q.answer) child.classList.add('correct');
+        const orig = Number(child.dataset.orig);
+        if(orig === q.answer) child.classList.add('correct');
         child.removeEventListener('click', onChoiceClick);
       });
       elNextBtn.disabled = false;
@@ -105,14 +112,16 @@ function renderQuestion(){
 }
 
 function onChoiceClick(e){
-  const idx = Number(this.dataset.index);
-  const res = quiz.answer(idx);
+  // read the original choice index (before shuffle) and pass that to the quiz logic
+  const origIdx = Number(this.dataset.orig);
+  const res = quiz.answer(origIdx);
   if(!res.ok){ return }
-  Array.from(elChoices.children).forEach((child, i)=>{
+  Array.from(elChoices.children).forEach((child)=>{
     child.classList.remove('correct','wrong');
     child.removeEventListener('click', onChoiceClick);
-    if(i === res.correctIndex) child.classList.add('correct');
-    if(i === idx && !res.correct) child.classList.add('wrong');
+    const orig = Number(child.dataset.orig);
+    if(orig === res.correctIndex) child.classList.add('correct');
+    if(orig === origIdx && !res.correct) child.classList.add('wrong');
   });
   elScore.textContent = `Score: ${quiz.score}`;
   elNextBtn.disabled = false;
@@ -208,8 +217,7 @@ function clearLeaderboard(){
   }catch(err){ console.error(err); }
 }
 
-elExportBtn?.addEventListener('click', exportLeaderboard);
-elClearBtn?.addEventListener('click', clearLeaderboard);
+// export/clear buttons removed
 
 // bootstrap
 (async function(){
