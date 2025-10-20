@@ -35,6 +35,7 @@ const elFinalScore = document.getElementById('final-score');
 const elPlayAgain = document.getElementById('play-again');
 
 let quiz = null;
+const DEFAULT_TIME = 20; // seconds per question
 
 async function loadQuestions(){
   try{
@@ -75,6 +76,27 @@ function renderQuestion(){
     elChoices.appendChild(li);
   });
   elNextBtn.disabled = true;
+  // set up time display
+  const elTimer = document.getElementById('timer');
+  elTimer.textContent = `Time: ${DEFAULT_TIME}s`;
+  // attach a per-question timer to quiz
+  quiz.timeLeft = DEFAULT_TIME;
+  if(quiz.timer) clearInterval(quiz.timer);
+  quiz.timer = setInterval(()=>{
+    quiz.timeLeft -= 1;
+    elTimer.textContent = `Time: ${quiz.timeLeft}s`;
+    if(quiz.timeLeft <= 0){
+      clearInterval(quiz.timer);
+      quiz.answered = true;
+      const q = quiz.current();
+      Array.from(elChoices.children).forEach((child, i)=>{
+        child.classList.remove('correct','wrong');
+        if(i === q.answer) child.classList.add('correct');
+        child.removeEventListener('click', onChoiceClick);
+      });
+      elNextBtn.disabled = false;
+    }
+  }, 1000);
 }
 
 function onChoiceClick(e){
@@ -98,6 +120,7 @@ function endGame(){
 }
 
 elNextBtn.addEventListener('click', ()=>{
+  if(quiz.timer) clearInterval(quiz.timer);
   const moved = quiz.next();
   if(!moved) return endGame();
   renderQuestion();
