@@ -1,22 +1,16 @@
 const QUESTIONS_PATH = './questions.json';
-const DEFAULT_TIME = 20; // seconds per question
 
 class Quiz {
-  constructor(questions, opts={}){
+  constructor(questions){
     this.questions = questions || [];
-    this.timePerQuestion = opts.timePerQuestion || DEFAULT_TIME;
     this.index = 0;
     this.score = 0;
-    this.timer = null;
-    this.timeLeft = this.timePerQuestion;
     this.answered = false;
   }
 
   current(){ return this.questions[this.index]; }
   hasNext(){ return this.index < this.questions.length - 1; }
-  next(){ if(this.hasNext()){ this.index++; this.resetForQuestion(); return true } return false }
-
-  resetForQuestion(){ this.timeLeft = this.timePerQuestion; this.answered = false }
+  next(){ if(this.hasNext()){ this.index++; this.answered = false; return true } return false }
 
   answer(choiceIndex){
     if(this.answered) return {ok:false, reason:'already answered'};
@@ -35,16 +29,16 @@ const elQuestionNumber = document.getElementById('question-number');
 const elChoices = document.getElementById('choices');
 const elScore = document.getElementById('score');
 const elNextBtn = document.getElementById('next-btn');
-const elTimer = document.getElementById('timer');
 const elResult = document.getElementById('result');
 const elGame = document.getElementById('game');
 const elFinalScore = document.getElementById('final-score');
+const elPlayAgain = document.getElementById('play-again');
 const elSaveForm = document.getElementById('save-score-form');
 const elName = document.getElementById('name');
-const elPlayAgain = document.getElementById('play-again');
 const elLeaderboardList = document.getElementById('leaderboard-list');
 
 let quiz = null;
+const DEFAULT_TIME = 20; // seconds per question
 
 async function loadQuestions(){
   try{
@@ -61,12 +55,11 @@ async function loadQuestions(){
 }
 
 function startGame(questions){
-  quiz = new Quiz(questions, {timePerQuestion: DEFAULT_TIME});
+  quiz = new Quiz(questions);
   elScore.textContent = `Score: ${quiz.score}`;
   elGame.classList.remove('hidden');
   elResult.classList.add('hidden');
   renderQuestion();
-  startTimer();
 }
 
 function renderQuestion(){
@@ -86,44 +79,18 @@ function renderQuestion(){
     elChoices.appendChild(li);
   });
   elNextBtn.disabled = true;
-}
-
-function onChoiceClick(e){
-  const idx = Number(this.dataset.index);
-  const res = quiz.answer(idx);
-  if(!res.ok){ return }
-  // highlight answers
-  Array.from(elChoices.children).forEach((child, i)=>{
-    child.classList.remove('correct','wrong');
-    child.removeEventListener('click', onChoiceClick);
-    if(i === res.correctIndex) child.classList.add('correct');
-    if(i === idx && !res.correct) child.classList.add('wrong');
-  });
-  elScore.textContent = `Score: ${quiz.score}`;
-  elNextBtn.disabled = false;
-  stopTimer();
-}
-
-function endGame(){
-  stopTimer();
-  elGame.classList.add('hidden');
-  elResult.classList.remove('hidden');
-  elFinalScore.textContent = `You scored ${quiz.score} / ${quiz.questions.length}`;
-  renderLeaderboard();
-}
-
-function startTimer(){
-  stopTimer();
-  elTimer.textContent = `Time: ${quiz.timeLeft}s`;
+  // set up time display
+  const elTimer = document.getElementById('timer');
+  elTimer.textContent = `Time: ${DEFAULT_TIME}s`;
+  // attach a per-question timer to quiz
+  quiz.timeLeft = DEFAULT_TIME;
+  if(quiz.timer) clearInterval(quiz.timer);
   quiz.timer = setInterval(()=>{
     quiz.timeLeft -= 1;
     elTimer.textContent = `Time: ${quiz.timeLeft}s`;
     if(quiz.timeLeft <= 0){
-      // timeout: treat as incorrect and move on
-      stopTimer();
-      // mark as answered to prevent double answers
+      clearInterval(quiz.timer);
       quiz.answered = true;
-      // show correct answer
       const q = quiz.current();
       Array.from(elChoices.children).forEach((child, i)=>{
         child.classList.remove('correct','wrong');
@@ -135,16 +102,32 @@ function startTimer(){
   }, 1000);
 }
 
-function stopTimer(){
-  if(quiz && quiz.timer) clearInterval(quiz.timer);
-  quiz.timer = null;
+function onChoiceClick(e){
+  const idx = Number(this.dataset.index);
+  const res = quiz.answer(idx);
+  if(!res.ok){ return }
+  Array.from(elChoices.children).forEach((child, i)=>{
+    child.classList.remove('correct','wrong');
+    child.removeEventListener('click', onChoiceClick);
+    if(i === res.correctIndex) child.classList.add('correct');
+    if(i === idx && !res.correct) child.classList.add('wrong');
+  });
+  elScore.textContent = `Score: ${quiz.score}`;
+  elNextBtn.disabled = false;
+}
+
+function endGame(){
+  elGame.classList.add('hidden');
+  elResult.classList.remove('hidden');
+  elFinalScore.textContent = `You scored ${quiz.score} / ${quiz.questions.length}`;
+  renderLeaderboard();
 }
 
 elNextBtn.addEventListener('click', ()=>{
+  if(quiz.timer) clearInterval(quiz.timer);
   const moved = quiz.next();
   if(!moved) return endGame();
   renderQuestion();
-  startTimer();
 });
 
 elPlayAgain.addEventListener('click', ()=>{
