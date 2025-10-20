@@ -68,12 +68,20 @@ function renderQuestion(){
   elQuestionNumber.textContent = `Question ${quiz.index + 1} / ${quiz.questions.length}`;
   elQuestionText.textContent = q.question;
   elChoices.innerHTML = '';
-  q.choices.forEach((choice, i)=>{
+  // shuffle choices but remember original indexes so we can map back to the correct answer
+  const mapped = q.choices.map((choice, i)=>({choice, origIndex: i}));
+  for(let i = mapped.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [mapped[i], mapped[j]] = [mapped[j], mapped[i]];
+  }
+  mapped.forEach((m, i)=>{
     const li = document.createElement('li');
     li.className = 'choice';
-    li.dataset.index = i;
+    // store the original index so answer checking still works
+    li.dataset.orig = m.origIndex;
+    li.dataset.index = i; // visual index
     li.tabIndex = 0;
-    li.textContent = choice;
+    li.textContent = m.choice;
     li.addEventListener('click', onChoiceClick);
     li.addEventListener('keypress', (e)=>{ if(e.key === 'Enter') onChoiceClick.call(li, e) });
     elChoices.appendChild(li);
@@ -92,9 +100,10 @@ function renderQuestion(){
       clearInterval(quiz.timer);
       quiz.answered = true;
       const q = quiz.current();
-      Array.from(elChoices.children).forEach((child, i)=>{
+      Array.from(elChoices.children).forEach((child)=>{
         child.classList.remove('correct','wrong');
-        if(i === q.answer) child.classList.add('correct');
+        const orig = Number(child.dataset.orig);
+        if(orig === q.answer) child.classList.add('correct');
         child.removeEventListener('click', onChoiceClick);
       });
       elNextBtn.disabled = false;
@@ -103,14 +112,16 @@ function renderQuestion(){
 }
 
 function onChoiceClick(e){
-  const idx = Number(this.dataset.index);
-  const res = quiz.answer(idx);
+  // read the original choice index (before shuffle) and pass that to the quiz logic
+  const origIdx = Number(this.dataset.orig);
+  const res = quiz.answer(origIdx);
   if(!res.ok){ return }
-  Array.from(elChoices.children).forEach((child, i)=>{
+  Array.from(elChoices.children).forEach((child)=>{
     child.classList.remove('correct','wrong');
     child.removeEventListener('click', onChoiceClick);
-    if(i === res.correctIndex) child.classList.add('correct');
-    if(i === idx && !res.correct) child.classList.add('wrong');
+    const orig = Number(child.dataset.orig);
+    if(orig === res.correctIndex) child.classList.add('correct');
+    if(orig === origIdx && !res.correct) child.classList.add('wrong');
   });
   elScore.textContent = `Score: ${quiz.score}`;
   elNextBtn.disabled = false;
@@ -147,10 +158,13 @@ function saveScore(name, score){
     const key = 'quiz_leaderboard_v1';
     const raw = localStorage.getItem(key) || '[]';
     const arr = JSON.parse(raw);
-    arr.push({name, score, date: new Date().toISOString()});
+    const entry = {name, score, date: new Date().toISOString()};
+    arr.push(entry);
     arr.sort((a,b)=>b.score - a.score || new Date(a.date) - new Date(b.date));
     if(arr.length > 10) arr.length = 10;
     localStorage.setItem(key, JSON.stringify(arr));
+    // expose last saved id for highlighting
+    localStorage.setItem('quiz_last_saved', JSON.stringify(entry));
   }catch(err){ console.error('Failed to save score', err) }
 }
 
@@ -161,13 +175,49 @@ function renderLeaderboard(){
     const arr = JSON.parse(raw);
     elLeaderboardList.innerHTML = '';
     if(arr.length === 0){ elLeaderboardList.innerHTML = '<li>No scores yet</li>'; return }
+    const lastSaved = JSON.parse(localStorage.getItem('quiz_last_saved') || 'null');
     arr.forEach(item=>{
       const li = document.createElement('li');
-      li.textContent = `${item.name} — ${item.score}`;
+      const when = new Date(item.date || Date.now()).toLocaleString();
+      li.textContent = `${item.name} — ${item.score} (${when})`;
+      if(lastSaved && lastSaved.name === item.name && lastSaved.score === item.score && lastSaved.date === item.date){
+        li.classList.add('highlight');
+      }
       elLeaderboardList.appendChild(li);
     });
   }catch(err){ console.error(err); }
 }
+
+function exportLeaderboard(){
+  try{
+    const key = 'quiz_leaderboard_v1';
+    const raw = localStorage.getItem(key) || '[]';
+    const arr = JSON.parse(raw);
+    if(arr.length === 0) return alert('No scores to export');
+    const rows = [['Name','Score','Date']].concat(arr.map(r=>[r.name, r.score, r.date]));
+    const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leaderboard.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(err){ console.error('Failed to export', err); }
+}
+
+function clearLeaderboard(){
+  try{
+    if(!confirm('Clear leaderboard? This cannot be undone.')) return;
+    localStorage.removeItem('quiz_leaderboard_v1');
+    localStorage.removeItem('quiz_last_saved');
+    renderLeaderboard();
+  }catch(err){ console.error(err); }
+}
+
+// export/clear buttons removed
 
 // bootstrap
 (async function(){
