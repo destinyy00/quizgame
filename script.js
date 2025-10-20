@@ -33,6 +33,9 @@ const elResult = document.getElementById('result');
 const elGame = document.getElementById('game');
 const elFinalScore = document.getElementById('final-score');
 const elPlayAgain = document.getElementById('play-again');
+const elSaveForm = document.getElementById('save-score-form');
+const elName = document.getElementById('name');
+const elLeaderboardList = document.getElementById('leaderboard-list');
 
 let quiz = null;
 const DEFAULT_TIME = 20; // seconds per question
@@ -117,6 +120,7 @@ function endGame(){
   elGame.classList.add('hidden');
   elResult.classList.remove('hidden');
   elFinalScore.textContent = `You scored ${quiz.score} / ${quiz.questions.length}`;
+  renderLeaderboard();
 }
 
 elNextBtn.addEventListener('click', ()=>{
@@ -129,6 +133,41 @@ elNextBtn.addEventListener('click', ()=>{
 elPlayAgain.addEventListener('click', ()=>{
   startGame(quiz.questions);
 });
+
+elSaveForm.addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const name = elName.value.trim() || 'Anonymous';
+  saveScore(name, quiz.score);
+  renderLeaderboard();
+  elSaveForm.reset();
+});
+
+function saveScore(name, score){
+  try{
+    const key = 'quiz_leaderboard_v1';
+    const raw = localStorage.getItem(key) || '[]';
+    const arr = JSON.parse(raw);
+    arr.push({name, score, date: new Date().toISOString()});
+    arr.sort((a,b)=>b.score - a.score || new Date(a.date) - new Date(b.date));
+    if(arr.length > 10) arr.length = 10;
+    localStorage.setItem(key, JSON.stringify(arr));
+  }catch(err){ console.error('Failed to save score', err) }
+}
+
+function renderLeaderboard(){
+  try{
+    const key = 'quiz_leaderboard_v1';
+    const raw = localStorage.getItem(key) || '[]';
+    const arr = JSON.parse(raw);
+    elLeaderboardList.innerHTML = '';
+    if(arr.length === 0){ elLeaderboardList.innerHTML = '<li>No scores yet</li>'; return }
+    arr.forEach(item=>{
+      const li = document.createElement('li');
+      li.textContent = `${item.name} — ${item.score}`;
+      elLeaderboardList.appendChild(li);
+    });
+  }catch(err){ console.error(err); }
+}
 
 // bootstrap
 (async function(){
