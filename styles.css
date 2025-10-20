@@ -23,5 +23,7 @@ button[disabled]{opacity:0.5;cursor:not-allowed}
 #timer{font-weight:700}
 .leaderboard{margin-top:18px}
 .leaderboard ol{padding-left:18px}
+.leaderboard .highlight{background:linear-gradient(90deg,#ffd54f,#fff2b8);color:#3b2c00;border-radius:6px;padding:6px}
+.leaderboard-controls{display:flex;gap:8px;margin-bottom:8px}
 footer{margin-top:12px;text-align:center;color:var(--muted)}
 @media (max-width:480px){.container{padding:12px}#question-text{font-size:1rem}}
