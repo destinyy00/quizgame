@@ -10,18 +10,6 @@ Features
 - Leaderboard stored in `localStorage` (top 10 scores).
 - Responsive, minimal UI.
 
-How to run locally
-1. Serve the project folder with a static server or open `index.html` from a server. Many browsers block fetch() for local files without a server.
-
-Example (using Node.js http-server):
-
-```powershell
-npm install -g http-server
-http-server . -p 8080
-```
-
-Then open http://localhost:8080 in your browser.
-
 Testing
 - A simple Node script validates the JSON format (questions present and fields exist).
 A minimal Quiz Game repository. This project contains a small JavaScript quiz that loads questions from a JSON file and displays them in the browser. The repository includes source files, a sample questions file, and a basic test script.
