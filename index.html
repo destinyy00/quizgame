@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiz Game</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Quiz Game</h1>
+      <div id="score">Score: 0</div>
+    </header>
+
+    <section id="game" class="card">
+      <div id="question-area">
+        <div id="question-number"></div>
+        <div id="question-text">Loading...</div>
+      </div>
+
+      <ul id="choices" class="choices"></ul>
+
+      <div class="controls">
+        <button id="next-btn" disabled>Next</button>
+        <div id="timer">Time: --</div>
+      </div>
+
+    </section>
+
+    <section id="result" class="card hidden">
+      <h2>Game Over</h2>
+      <p id="final-score">You scored 0</p>
+      <form id="save-score-form">
+        <label for="name">Enter your name for the leaderboard:</label>
+        <input id="name" name="name" maxlength="20" required />
+        <button type="submit">Save Score</button>
+      </form>
+      <button id="play-again">Play Again</button>
+
+      <div id="leaderboard" class="leaderboard">
+        <h3>Leaderboard</h3>
+        <ol id="leaderboard-list"></ol>
+      </div>
+    </section>
+
+    <footer>
+      <small>Questions loaded from <code>questions.json</code></small>
+    </footer>
+  </main>
+
+  <script src="script.js" type="module"></script>
+</body>
+</html>

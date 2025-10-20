@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "category": "General Knowledge",
+    "question": "What is the capital of France?",
+    "choices": ["Berlin","Madrid","Paris","Rome"],
+    "answer": 2
+  },
+  {
+    "id": 2,
+    "category": "Science",
+    "question": "What is the chemical symbol for water?",
+    "choices": ["H2","O2","H2O","HO2"],
+    "answer": 2
+  },
+  {
+    "id": 3,
+    "category": "Math",
+    "question": "What is the value of π rounded to 2 decimal places?",
+    "choices": ["3.12","3.14","3.15","3.13"],
+    "answer": 1
+  },
+  {
+    "id": 4,
+    "category": "Technology",
+    "question": "Which language runs in a web browser?",
+    "choices": ["Java","C","Python","JavaScript"],
+    "answer": 3
+  },
+  {
+    "id": 5,
+    "category": "History",
+    "question": "Who was the first president of the United States?",
+    "choices": ["Abraham Lincoln","George Washington","Thomas Jefferson","John Adams"],
+    "answer": 1
+  }
+]
