@@ -25,6 +25,9 @@ Then open http://localhost:8080 in your browser.
 Testing
 - A simple Node script validates the JSON format (questions present and fields exist).
 
+Tests
+- `test-validate-questions.js` checks `questions.json` for correct structure. Run with `node test-validate-questions.js`.
+
 Deployment
 - You can host this repo on GitHub and enable GitHub Pages to serve `index.html` from the `main` branch or `gh-pages` branch.
 
