@@ -24,9 +24,7 @@ Then open http://localhost:8080 in your browser.
 
 Testing
 - A simple Node script validates the JSON format (questions present and fields exist).
+A minimal Quiz Game repository. This project contains a small JavaScript quiz that loads questions from a JSON file and displays them in the browser. The repository includes source files, a sample questions file, and a basic test script.
 
-Deployment
-- You can host this repo on GitHub and enable GitHub Pages to serve `index.html` from the `main` branch or `gh-pages` branch.
+The README intentionally omits local run instructions.
 
-Notes
-- To add more questions, edit `questions.json` with the same structure. `answer` is the zero-based index of the correct choice.
