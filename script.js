@@ -36,6 +36,8 @@ const elPlayAgain = document.getElementById('play-again');
 const elSaveForm = document.getElementById('save-score-form');
 const elName = document.getElementById('name');
 const elLeaderboardList = document.getElementById('leaderboard-list');
+const elExportBtn = document.getElementById('export-leaderboard');
+const elClearBtn = document.getElementById('clear-leaderboard');
 
 let quiz = null;
 const DEFAULT_TIME = 20; // seconds per question
@@ -147,10 +149,13 @@ function saveScore(name, score){
     const key = 'quiz_leaderboard_v1';
     const raw = localStorage.getItem(key) || '[]';
     const arr = JSON.parse(raw);
-    arr.push({name, score, date: new Date().toISOString()});
+    const entry = {name, score, date: new Date().toISOString()};
+    arr.push(entry);
     arr.sort((a,b)=>b.score - a.score || new Date(a.date) - new Date(b.date));
     if(arr.length > 10) arr.length = 10;
     localStorage.setItem(key, JSON.stringify(arr));
+    // expose last saved id for highlighting
+    localStorage.setItem('quiz_last_saved', JSON.stringify(entry));
   }catch(err){ console.error('Failed to save score', err) }
 }
 
@@ -161,13 +166,50 @@ function renderLeaderboard(){
     const arr = JSON.parse(raw);
     elLeaderboardList.innerHTML = '';
     if(arr.length === 0){ elLeaderboardList.innerHTML = '<li>No scores yet</li>'; return }
+    const lastSaved = JSON.parse(localStorage.getItem('quiz_last_saved') || 'null');
     arr.forEach(item=>{
       const li = document.createElement('li');
-      li.textContent = `${item.name} — ${item.score}`;
+      const when = new Date(item.date || Date.now()).toLocaleString();
+      li.textContent = `${item.name} — ${item.score} (${when})`;
+      if(lastSaved && lastSaved.name === item.name && lastSaved.score === item.score && lastSaved.date === item.date){
+        li.classList.add('highlight');
+      }
       elLeaderboardList.appendChild(li);
     });
   }catch(err){ console.error(err); }
 }
+
+function exportLeaderboard(){
+  try{
+    const key = 'quiz_leaderboard_v1';
+    const raw = localStorage.getItem(key) || '[]';
+    const arr = JSON.parse(raw);
+    if(arr.length === 0) return alert('No scores to export');
+    const rows = [['Name','Score','Date']].concat(arr.map(r=>[r.name, r.score, r.date]));
+    const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'leaderboard.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(err){ console.error('Failed to export', err); }
+}
+
+function clearLeaderboard(){
+  try{
+    if(!confirm('Clear leaderboard? This cannot be undone.')) return;
+    localStorage.removeItem('quiz_leaderboard_v1');
+    localStorage.removeItem('quiz_last_saved');
+    renderLeaderboard();
+  }catch(err){ console.error(err); }
+}
+
+elExportBtn?.addEventListener('click', exportLeaderboard);
+elClearBtn?.addEventListener('click', clearLeaderboard);
 
 // bootstrap
 (async function(){
